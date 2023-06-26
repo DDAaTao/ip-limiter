@@ -3,7 +3,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.siiri</groupId>
+    <groupId>com.van.util</groupId>
     <artifactId>ip-limiter</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
@@ -62,16 +62,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <distributionManagement>
-        <repository>
-            <id>nexus-releases</id>
-            <name>maven-releases</name>
-            <url>http://172.16.30.20:8081/repository/maven-releases/</url>
-        </repository>
-        <snapshotRepository>
-            <id>nexus-snapshots</id>
-            <name>maven-snapshots</name>
-            <url>http://172.16.30.20:8081/repository/maven-snapshots/</url>
-        </snapshotRepository>
-    </distributionManagement>
 </project>

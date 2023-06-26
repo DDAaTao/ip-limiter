@@ -53,18 +53,6 @@ my.white.ip.list=172.16.50.21,172.16.50.22,172.16.50.23
 
 ## 快速开始
 
-1. 引入Ip-Limit依赖 （已放入公司Maven仓库）
-```xml
-<!-- replace here with the latest version -->
-<dependency>
-    <groupId>com.siiri</groupId>
-    <artifactId>ip-limit</artifactId>
-    <version>1.0-SNAPSHOT</version>
-</dependency>
-```   
+1. 引入Ip-Limit依赖
 2. 将 @EnableIpLimit 添加到 webApplication 类上,或其他可以被 Spring 扫描到的类上
 3. 将 @IpLimit 注解添加到想要做IP限流的方法（接口）上，根据需求动态调整参数
-
-
-## 合作须知
-1. 有想提PR的可以预先沟通下想要做的功能，避免相同功能重复开发
