@@ -1,0 +1,45 @@
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**
+!**/src/test/**
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+*.mvn
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### apm ###
+fs/
+docker_lib/
+log/*
+/docker/tar/
+/docker/base/nginx/apm-web/
+/docker/base/nginx/logs/access.log
+/docker/base/nginx/logs/error.log
+web_debug.log
+web_error.log
+web_info.log
+web_warn.log
+/jar/
