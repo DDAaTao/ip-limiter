@@ -160,14 +160,12 @@ public class IpLimitAspect {
      * @return boolean
      */
     private boolean strInIpArray(String[] array, String str) {
-        if (array.length != 0) {
-            for (String arrayStr : array) {
-                arrayStr = environment.resolvePlaceholders(arrayStr);
-                String[] split = arrayStr.split(IpLimitConstant.IP_PROPERTIES_SPLIT);
-                for (String s : split) {
-                    if (IpUtils.ipFuzzyMatch(s.trim(), str)) {
-                        return true;
-                    }
+        for (String arrayStr : array) {
+            arrayStr = environment.resolvePlaceholders(arrayStr);
+            String[] split = arrayStr.split(IpLimitConstant.IP_PROPERTIES_SPLIT);
+            for (String s : split) {
+                if (IpUtils.ipFuzzyMatch(s.trim(), str)) {
+                    return true;
                 }
             }
         }
