@@ -27,13 +27,13 @@ public @interface IpLimit {
 
     /**
      * 限流时间单位类型
-     * @return 秒,分钟
+     * @return 毫秒,秒,分钟
      */
     LimitTimeType limitTimeType() default LimitTimeType.SECOND;
 
     /**
      * 限流的单位时间长度
-     * @return 时间长度
+     * @return 时间长度,单位由 {@link IpLimit#limitTimeType()} 决定
      */
     long unitTime() default 1;
 

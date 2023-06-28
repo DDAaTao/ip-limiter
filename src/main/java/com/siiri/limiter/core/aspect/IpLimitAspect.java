@@ -21,6 +21,11 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
 
 /**
@@ -144,25 +149,34 @@ public class IpLimitAspect {
      * @param permitsPerSecond 计算后的每秒允许请求数量
      */
     private void windowLimitMethod(IpLimit ipLimitAnnotation, String requestHost, double permitsPerSecond) {
-        Map<String, RateLimiter> stringRateLimiterMap = RateLimitAspectConfig.TOKEN_BUCKET_LIMITER_MAP.get(requestHost);
-        if (CollectionUtils.isEmpty(stringRateLimiterMap)) {
-            RateLimiter rateLimiter = RateLimiter.create(permitsPerSecond);
-            rateLimiter.acquire();
-            stringRateLimiterMap = Maps.newConcurrentMap();
-            stringRateLimiterMap.put(ipLimitAnnotation.groupName(), rateLimiter);
-            RateLimitAspectConfig.TOKEN_BUCKET_LIMITER_MAP.put(requestHost, stringRateLimiterMap);
-        } else {
-            RateLimiter rateLimiter = stringRateLimiterMap.get(ipLimitAnnotation.groupName());
-            if (rateLimiter != null) {
-                if (Boolean.FALSE.equals(rateLimiter.tryAcquire())) {
-                    ipLimitError(ipLimitAnnotation, requestHost);
-                }
-            } else {
-                rateLimiter = RateLimiter.create(permitsPerSecond);
-                rateLimiter.acquire();
-                stringRateLimiterMap = Maps.newConcurrentMap();
-                stringRateLimiterMap.put(ipLimitAnnotation.groupName(), rateLimiter);
-            }
+        Map<String, Deque<LocalDateTime>> stringDequeMap = RateLimitAspectConfig.WINDOW_TIMESTAMP_LIMITER_MAP
+                .computeIfAbsent(requestHost, k -> {
+                    Map<String, Deque<LocalDateTime>> dequeMap =  Maps.newConcurrentMap();
+                    dequeMap.put(ipLimitAnnotation.groupName(), new ArrayDeque<>());
+                    return dequeMap;
+                });
+
+        RateLimitAspectConfig.WINDOW_TIMESTAMP_LIMITER_MAP.put(requestHost, stringDequeMap);
+        Deque<LocalDateTime> dateTimeDeque = stringDequeMap.get(ipLimitAnnotation.groupName());
+
+        // 获取滑动窗口的时间窗时间类型,默认为毫秒
+        TemporalUnit temporalUnit;
+        switch (ipLimitAnnotation.limitTimeType()) {
+            case SECOND:
+                temporalUnit = ChronoUnit.SECONDS;
+                break;
+            case MINUTE:
+                temporalUnit = ChronoUnit.MINUTES;
+                break;
+            default:temporalUnit = ChronoUnit.MILLIS;
+        }
+        // 丢弃超出滑动窗口的失效数据
+        while (!dateTimeDeque.isEmpty() && LocalDateTime.now().minus(ipLimitAnnotation.unitTime(), temporalUnit).isAfter(dateTimeDeque.peekFirst())) {
+            dateTimeDeque.pollFirst();
+        }
+        // 超出最大请求次数报出异常
+        if (dateTimeDeque.size() > ipLimitAnnotation.maxTimes()) {
+            ipLimitError(ipLimitAnnotation, requestHost);
         }
     }
 
@@ -174,6 +188,8 @@ public class IpLimitAspect {
      */
     private double computePermitsPerSecond(IpLimit ipLimit) {
         switch (ipLimit.limitTimeType()) {
+            case MILLISECOND:
+                return ipLimit.maxTimes() * 1000 / ipLimit.unitTime() ;
             case SECOND:
                 return ipLimit.maxTimes() / ipLimit.unitTime();
             case MINUTE:

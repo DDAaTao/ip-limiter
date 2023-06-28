@@ -6,6 +6,10 @@ package com.siiri.limiter.core.enums;
  */
 public enum LimitTimeType {
     /**
+     * 毫秒
+     */
+    MILLISECOND,
+    /**
      * 秒
      */
     SECOND,
