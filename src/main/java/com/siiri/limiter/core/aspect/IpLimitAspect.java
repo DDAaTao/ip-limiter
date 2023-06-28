@@ -115,13 +115,13 @@ public class IpLimitAspect {
      * @param permitsPerSecond 计算后的每秒允许请求数量
      */
     private void defaultLimitMethod(IpLimit ipLimitAnnotation, String requestHost, double permitsPerSecond) {
-        Map<String, RateLimiter> stringRateLimiterMap = RateLimitAspectConfig.rateLimiterMap.get(requestHost);
+        Map<String, RateLimiter> stringRateLimiterMap = RateLimitAspectConfig.TOKEN_BUCKET_LIMITER_MAP.get(requestHost);
         if (CollectionUtils.isEmpty(stringRateLimiterMap)) {
             RateLimiter rateLimiter = RateLimiter.create(permitsPerSecond);
             rateLimiter.acquire();
             stringRateLimiterMap = Maps.newConcurrentMap();
             stringRateLimiterMap.put(ipLimitAnnotation.groupName(), rateLimiter);
-            RateLimitAspectConfig.rateLimiterMap.put(requestHost, stringRateLimiterMap);
+            RateLimitAspectConfig.TOKEN_BUCKET_LIMITER_MAP.put(requestHost, stringRateLimiterMap);
         } else {
             RateLimiter rateLimiter = stringRateLimiterMap.get(ipLimitAnnotation.groupName());
             if (rateLimiter != null) {
@@ -136,6 +136,36 @@ public class IpLimitAspect {
             }
         }
     }
+
+    /**
+     * 滑动窗口限流核心逻辑
+     * @param ipLimitAnnotation 用于获取分组等信息数据
+     * @param requestHost 请求方IP
+     * @param permitsPerSecond 计算后的每秒允许请求数量
+     */
+    private void windowLimitMethod(IpLimit ipLimitAnnotation, String requestHost, double permitsPerSecond) {
+        Map<String, RateLimiter> stringRateLimiterMap = RateLimitAspectConfig.TOKEN_BUCKET_LIMITER_MAP.get(requestHost);
+        if (CollectionUtils.isEmpty(stringRateLimiterMap)) {
+            RateLimiter rateLimiter = RateLimiter.create(permitsPerSecond);
+            rateLimiter.acquire();
+            stringRateLimiterMap = Maps.newConcurrentMap();
+            stringRateLimiterMap.put(ipLimitAnnotation.groupName(), rateLimiter);
+            RateLimitAspectConfig.TOKEN_BUCKET_LIMITER_MAP.put(requestHost, stringRateLimiterMap);
+        } else {
+            RateLimiter rateLimiter = stringRateLimiterMap.get(ipLimitAnnotation.groupName());
+            if (rateLimiter != null) {
+                if (Boolean.FALSE.equals(rateLimiter.tryAcquire())) {
+                    ipLimitError(ipLimitAnnotation, requestHost);
+                }
+            } else {
+                rateLimiter = RateLimiter.create(permitsPerSecond);
+                rateLimiter.acquire();
+                stringRateLimiterMap = Maps.newConcurrentMap();
+                stringRateLimiterMap.put(ipLimitAnnotation.groupName(), rateLimiter);
+            }
+        }
+    }
+
 
     /**
      * 将不同限流时间单位转化为秒级限流措施
