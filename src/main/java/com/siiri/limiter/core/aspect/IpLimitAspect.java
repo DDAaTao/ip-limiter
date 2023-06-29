@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -58,11 +57,11 @@ public class IpLimitAspect {
 
         HttpServletRequest request = attributes.getRequest();
         String requestHost = IpUtils.getIpAddress(request);
-        log.debug("Limiter find request IP: {}", requestHost);
+        log.debug("Limiter found request IP: {}", requestHost);
         double permitsPerSecond = computePermitsPerSecond(ipLimitAnnotation);
         switch (ipLimitAnnotation.limitType()) {
             case DEFAULT:
-                defaultLimitMethod(ipLimitAnnotation, requestHost, permitsPerSecond);
+                currentLimiterSwitch(ipLimitAnnotation, requestHost, permitsPerSecond);
                 break;
             case WHITE_LIST:
                 // 如果是白名单内的,则不再进行校验
@@ -81,13 +80,13 @@ public class IpLimitAspect {
                 if (Boolean.TRUE.equals(strInIpArray(ipLimitAnnotation.whiteList(), requestHost))) {
                     return joinPoint.proceed();
                 }
-                defaultLimitMethod(ipLimitAnnotation, requestHost, permitsPerSecond);
+                currentLimiterSwitch(ipLimitAnnotation, requestHost, permitsPerSecond);
                 break;
             case DEFAULT_WITH_BLACK_LIST:
                 if (Boolean.TRUE.equals(strInIpArray(ipLimitAnnotation.blackList(), requestHost))) {
                     ipLimitError(ipLimitAnnotation, requestHost);
                 }
-                defaultLimitMethod(ipLimitAnnotation, requestHost, permitsPerSecond);
+                currentLimiterSwitch(ipLimitAnnotation, requestHost, permitsPerSecond);
                 break;
             case DEFAULT_WITH_WHITE_AND_BLACK_LIST:
                 if (Boolean.TRUE.equals(strInIpArray(ipLimitAnnotation.blackList(), requestHost))) {
@@ -96,7 +95,7 @@ public class IpLimitAspect {
                 if (Boolean.TRUE.equals(strInIpArray(ipLimitAnnotation.whiteList(), requestHost))) {
                     return joinPoint.proceed();
                 }
-                defaultLimitMethod(ipLimitAnnotation, requestHost, permitsPerSecond);
+                currentLimiterSwitch(ipLimitAnnotation, requestHost, permitsPerSecond);
                 break;
             default:break;
         }
@@ -114,31 +113,48 @@ public class IpLimitAspect {
     }
 
     /**
+     * 限流器选择入口方法
+     * @param ipLimitAnnotation 用于获取分组等信息数据
+     * @param requestHost 请求方IP
+     * @param permitsPerSecond 计算后的每秒允许请求数量
+     */
+    private void currentLimiterSwitch(IpLimit ipLimitAnnotation, String requestHost, double permitsPerSecond) {
+        switch (ipLimitAnnotation.currentLimiter()) {
+            case TOKEN_BUCKET:
+                tokenBucketLimitMethod(ipLimitAnnotation, requestHost, permitsPerSecond);
+                break;
+            case SLIDING_WINDOW:
+                windowLimitMethod(ipLimitAnnotation, requestHost, permitsPerSecond);
+                break;
+            default:break;
+        }
+    }
+
+    /**
      * 令牌桶限流核心逻辑
      * @param ipLimitAnnotation 用于获取分组等信息数据
      * @param requestHost 请求方IP
      * @param permitsPerSecond 计算后的每秒允许请求数量
      */
-    private void defaultLimitMethod(IpLimit ipLimitAnnotation, String requestHost, double permitsPerSecond) {
-        Map<String, RateLimiter> stringRateLimiterMap = RateLimitAspectConfig.TOKEN_BUCKET_LIMITER_MAP.get(requestHost);
-        if (CollectionUtils.isEmpty(stringRateLimiterMap)) {
+    @SuppressWarnings("ALL")
+    private void tokenBucketLimitMethod(IpLimit ipLimitAnnotation, String requestHost, double permitsPerSecond) {
+        // 取并判断是否已记录该IP的限流Map
+        Map<String, RateLimiter> rateLimiterMap = RateLimitAspectConfig.TOKEN_BUCKET_LIMITER_MAP.computeIfAbsent(requestHost, k -> {
             RateLimiter rateLimiter = RateLimiter.create(permitsPerSecond);
-            rateLimiter.acquire();
-            stringRateLimiterMap = Maps.newConcurrentMap();
+            Map<String, RateLimiter> stringRateLimiterMap = Maps.newConcurrentMap();
             stringRateLimiterMap.put(ipLimitAnnotation.groupName(), rateLimiter);
-            RateLimitAspectConfig.TOKEN_BUCKET_LIMITER_MAP.put(requestHost, stringRateLimiterMap);
-        } else {
-            RateLimiter rateLimiter = stringRateLimiterMap.get(ipLimitAnnotation.groupName());
-            if (rateLimiter != null) {
-                if (Boolean.FALSE.equals(rateLimiter.tryAcquire())) {
-                    ipLimitError(ipLimitAnnotation, requestHost);
-                }
-            } else {
-                rateLimiter = RateLimiter.create(permitsPerSecond);
-                rateLimiter.acquire();
-                stringRateLimiterMap = Maps.newConcurrentMap();
-                stringRateLimiterMap.put(ipLimitAnnotation.groupName(), rateLimiter);
-            }
+            return stringRateLimiterMap;
+        });
+        // 取并判断是否已记录该IP的对应Group限流情况
+        RateLimiter rateLimiter = rateLimiterMap.computeIfAbsent(ipLimitAnnotation.groupName(), k -> {
+            RateLimiter thisRateLimiter = RateLimiter.create(permitsPerSecond);
+            rateLimiterMap.put(ipLimitAnnotation.groupName(), thisRateLimiter);
+            return thisRateLimiter;
+        });
+
+        // 判断是否可以获取令牌成功,否则报异常
+        if (Boolean.FALSE.equals(rateLimiter.tryAcquire())) {
+            ipLimitError(ipLimitAnnotation, requestHost);
         }
     }
 
@@ -153,10 +169,10 @@ public class IpLimitAspect {
                 .computeIfAbsent(requestHost, k -> {
                     Map<String, Deque<LocalDateTime>> dequeMap =  Maps.newConcurrentMap();
                     dequeMap.put(ipLimitAnnotation.groupName(), new ArrayDeque<>());
+                    RateLimitAspectConfig.WINDOW_TIMESTAMP_LIMITER_MAP.put(requestHost, dequeMap);
                     return dequeMap;
                 });
 
-        RateLimitAspectConfig.WINDOW_TIMESTAMP_LIMITER_MAP.put(requestHost, stringDequeMap);
         Deque<LocalDateTime> dateTimeDeque = stringDequeMap.get(ipLimitAnnotation.groupName());
 
         // 获取滑动窗口的时间窗时间类型,默认为毫秒

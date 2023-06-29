@@ -2,7 +2,6 @@ package com.siiri.limiter.core.enums;
 
 /**
  * 限流规则
- * todo(van) 后续通过滑动窗口模式实现限流
  * @author van
  */
 public enum LimitType {

@@ -2,6 +2,7 @@ package com.siiri.limiter.core.constant;
 
 
 /**
+ * 常量类
  * @author van
  */
 public class IpLimitConstant {

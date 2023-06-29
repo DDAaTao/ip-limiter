@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
+ * IP 工具类
  * @author van
  */
 public class IpUtils {
@@ -118,9 +119,8 @@ public class IpUtils {
 
     /**
      * 判断是否为局域网ip
-     *
-     * @param ip
-     * @return
+     * @param ip ip
+     * @return boolean
      */
     private static boolean isLAN(String ip) {
         ip = ip.trim();
@@ -129,9 +129,8 @@ public class IpUtils {
 
     /**
      * 是否是内网访问
-     *
-     * @param request
-     * @return
+     * @param request HttpServletRequest
+     * @return boolean
      */
     public static boolean isLanAccess(HttpServletRequest request) {
         String host = getRequestHost(request);

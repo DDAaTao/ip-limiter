@@ -24,6 +24,7 @@ public class RateLimitAspectConfig {
      * 令牌桶模式，<IP,<Group,RateLimit-令牌桶>> , 用以区分不同groupName之间的限流措施
      * 可以暂时不考虑 @Beta 问题,考虑项目进度先采用令牌桶方案,后续考虑切换滑动窗口限流方案
      */
+    @SuppressWarnings("ALL")
     protected static Map<String, Map<String, RateLimiter>> TOKEN_BUCKET_LIMITER_MAP = Maps.newConcurrentMap();
 
 
