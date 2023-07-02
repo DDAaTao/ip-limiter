@@ -52,6 +52,13 @@ my.white.ip.list=172.16.50.21,172.16.50.22,172.16.50.23
 
 ## 快速开始
 
-1. 引入Ip-Limit依赖
+1. 引入Ip-Limit依赖（已发布至Maven中央仓库）
+```xml
+<dependency>
+  <groupId>io.github.DDAaTao</groupId>
+  <artifactId>ip-limiter</artifactId>
+  <version>1.0.0</version>
+</dependency>
+```
 2. 将 @EnableIpLimit 添加到 webApplication 类上,或其他可以被 Spring 扫描到的类上
 3. 将 @IpLimit 注解添加到想要做IP限流的方法（接口）上，根据需求动态调整参数
