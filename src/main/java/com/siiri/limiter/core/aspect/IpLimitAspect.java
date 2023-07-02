@@ -223,6 +223,7 @@ public class IpLimitAspect {
      */
     private boolean strInIpArray(String[] array, String str) {
         for (String arrayStr : array) {
+            // 通过environment实现可通过properties配置对应的映射arrayStr
             arrayStr = environment.resolvePlaceholders(arrayStr);
             String[] split = arrayStr.split(IpLimitConstant.IP_PROPERTIES_SPLIT);
             for (String s : split) {
