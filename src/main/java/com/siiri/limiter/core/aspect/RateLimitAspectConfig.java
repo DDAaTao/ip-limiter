@@ -21,7 +21,7 @@ public class RateLimitAspectConfig {
     protected static final Deque<LocalDateTime> GLOBAL_REQUEST_TIMESTAMP_QUEUE = new ConcurrentLinkedDeque<>();
 
     /**
-     * 令牌桶模式，<IP,<Group,RateLimit-令牌桶>> , 用以区分不同groupName之间的限流措施
+     * 令牌桶模式，[IP,[Group,RateLimit-令牌桶]] , 用以区分不同groupName之间的限流措施
      * 可以暂时不考虑 @Beta 问题,考虑项目进度先采用令牌桶方案,后续考虑切换滑动窗口限流方案
      */
     @SuppressWarnings("ALL")
@@ -29,7 +29,7 @@ public class RateLimitAspectConfig {
 
 
     /**
-     * 滑动窗口模式，<IP,<Group,RateLimit>>, 用以区分不同groupName之间的限流措施
+     * 滑动窗口模式，[IP,[Group,RateLimit]], 用以区分不同groupName之间的限流措施
      */
     protected static final Map<String, Map<String, Deque<LocalDateTime>>> WINDOW_TIMESTAMP_LIMITER_MAP = new ConcurrentHashMap<>();
 
