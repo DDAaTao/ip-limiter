@@ -23,9 +23,9 @@ import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
-import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
  * @author van
@@ -39,7 +39,7 @@ public class IpLimitAspect {
     @Autowired
     private Environment environment;
 
-    @Pointcut("@annotation(com.siiri.limiter.core.annotation.IpLimit)")
+    @Pointcut("@within(com.siiri.limiter.core.annotation.IpLimit) ||@annotation(com.siiri.limiter.core.annotation.IpLimit)")
     private void pointMethod() {
     }
 
@@ -52,6 +52,9 @@ public class IpLimitAspect {
         if (joinPoint.getSignature() instanceof MethodSignature) {
             MethodSignature methodSignature = (MethodSignature) joinPoint.getSignature();
             ipLimitAnnotation = methodSignature.getMethod().getAnnotation(IpLimit.class);
+            if (ipLimitAnnotation == null) {
+                ipLimitAnnotation = methodSignature.getMethod().getDeclaringClass().getAnnotation(IpLimit.class);
+            }
         }
         assert ipLimitAnnotation != null;
 
@@ -124,7 +127,7 @@ public class IpLimitAspect {
                 tokenBucketLimitMethod(ipLimitAnnotation, requestHost, permitsPerSecond);
                 break;
             case SLIDING_WINDOW:
-                windowLimitMethod(ipLimitAnnotation, requestHost, permitsPerSecond);
+                windowLimitMethod(ipLimitAnnotation, requestHost);
                 break;
             default:break;
         }
@@ -162,18 +165,14 @@ public class IpLimitAspect {
      * 滑动窗口限流核心逻辑
      * @param ipLimitAnnotation 用于获取分组等信息数据
      * @param requestHost 请求方IP
-     * @param permitsPerSecond 计算后的每秒允许请求数量
      */
-    private void windowLimitMethod(IpLimit ipLimitAnnotation, String requestHost, double permitsPerSecond) {
+    private void windowLimitMethod(IpLimit ipLimitAnnotation, String requestHost) {
         Map<String, Deque<LocalDateTime>> stringDequeMap = RateLimitAspectConfig.WINDOW_TIMESTAMP_LIMITER_MAP
                 .computeIfAbsent(requestHost, k -> {
                     Map<String, Deque<LocalDateTime>> dequeMap =  Maps.newConcurrentMap();
-                    dequeMap.put(ipLimitAnnotation.groupName(), new ArrayDeque<>());
-                    RateLimitAspectConfig.WINDOW_TIMESTAMP_LIMITER_MAP.put(requestHost, dequeMap);
+                    dequeMap.put(ipLimitAnnotation.groupName(), new ConcurrentLinkedDeque<>());
                     return dequeMap;
                 });
-
-        Deque<LocalDateTime> dateTimeDeque = stringDequeMap.get(ipLimitAnnotation.groupName());
 
         // 获取滑动窗口的时间窗时间类型,默认为毫秒
         TemporalUnit temporalUnit;
@@ -186,14 +185,20 @@ public class IpLimitAspect {
                 break;
             default:temporalUnit = ChronoUnit.MILLIS;
         }
+
         // 丢弃超出滑动窗口的失效数据
+        Deque<LocalDateTime> dateTimeDeque = stringDequeMap.get(ipLimitAnnotation.groupName());
         while (!dateTimeDeque.isEmpty() && LocalDateTime.now().minus(ipLimitAnnotation.unitTime(), temporalUnit).isAfter(dateTimeDeque.peekFirst())) {
             dateTimeDeque.pollFirst();
         }
+
         // 超出最大请求次数报出异常
         if (dateTimeDeque.size() > ipLimitAnnotation.maxTimes()) {
             ipLimitError(ipLimitAnnotation, requestHost);
         }
+
+        // 加入当前请求
+        dateTimeDeque.push(LocalDateTime.now());
     }
 
 

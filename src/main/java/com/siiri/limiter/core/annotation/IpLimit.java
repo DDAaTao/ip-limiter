@@ -8,10 +8,11 @@ import com.siiri.limiter.core.enums.LimitType;
 import java.lang.annotation.*;
 
 /**
+ * 限流具体注解
  * @author van
  */
 @Inherited
-@Target(ElementType.METHOD)
+@Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface IpLimit {
 
@@ -70,5 +71,4 @@ public @interface IpLimit {
      * @return 黑名单list
      */
     String[] blackList() default {};
-
 }

@@ -37,7 +37,16 @@ my.white.ip.list=172.16.50.21,172.16.50.22,172.16.50.23
   - *.21
   - \*
 
+**核心限流模式 - LimitType类**
+- DEFAULT - 走默认限流策略,不考虑黑白名单参数
+- WHITE_LIST - 只考虑白名单策略,非白名单的请求全部回绝
+- BLACK_LIST - 只考虑黑名单策略,非黑名单请求不做限流措施
+- DEFAULT_WITH_WHITE_LIST - 在默认限流策略的基础上,白名单内的IP不做限流
+- DEFAULT_WITH_BLACK_LIST - 在默认限流策略的基础上,直接403黑名单
+- DEFAULT_WITH_WHITE_AND_BLACK_LIST - 在默认限流策略的基础上,直接403黑名单,再让白名单内的IP直接同行
+
 **Ip-Limit 计划实现功能:**
+- 全局限流、类级别限流
 - 对应组黑白名单只需单次配置即可作用于同组下的其他接口
   - 目前的黑白名单配置是按第一次请求时缓存到rateLimiterMap中的RateLimiter进行限流的
 - 通过RateLimitAspectConfig添加统一配置组、限流、黑白名单功能
@@ -54,11 +63,50 @@ my.white.ip.list=172.16.50.21,172.16.50.22,172.16.50.23
 
 1. 引入Ip-Limit依赖（已发布至Maven中央仓库）
 ```xml
-<dependency>
-  <groupId>io.github.DDAaTao</groupId>
-  <artifactId>ip-limiter</artifactId>
-  <version>1.0.0</version>
-</dependency>
+  <!-- 建议使用最新版本{ip-limiter.version} -->
+  <dependency>
+    <groupId>io.github.DDAaTao</groupId>
+    <artifactId>ip-limiter</artifactId>
+    <version>1.0.1</version>
+  </dependency>
 ```
 2. 将 @EnableIpLimit 添加到 webApplication 类上,或其他可以被 Spring 扫描到的类上
 3. 将 @IpLimit 注解添加到想要做IP限流的方法（接口）上，根据需求动态调整参数
+
+> 如果项目中没有引入guava、spring-context包,则需要手动引入,否则会报java.lang.NoSuchMethodError异常
+> 
+> 从1.0.1开始默认引入,如果项目中已有相关依赖,可以考虑通过<exclusions>去除掉
+
+## 最佳实践
+### 一、自定义限流异常处理机制
+```Java
+/**
+ * 默认情况下,当请求超出限流限制时,会打印日志并抛出 IpLimitException 异常
+ * 用户可以通过统一异常拦截器捕获并自定义业务处理
+ * 后续考虑增加回调或钩子方法
+ * */
+@Slf4j
+@ControllerAdvice
+public class BaseExceptionHandler {
+
+  @ExceptionHandler(IpLimitException.class)
+  @ResponseBody
+  public RestApiResult<Object> resolveCommonException(IpLimitException e) {
+    log.error("IpLimitException Intercept. Please try again later.. ");
+    return RestApiResult.fail("IpLimitException Intercept. Please try again later.. ");
+  }
+  
+}
+
+```
+### 二、已存在鉴权方案时的接入方案
+```
+SpringCloud 项目或者大部分项目一般都会有默认鉴权机制，比如Spring-Security。
+这个时候如果有需要和外部对接的接口，有两种处理方法，一个是通过类似Oauth2之类的三方协议处理，
+但是流程对接较为麻烦，尤其是有些内外项目，本身已有较好的安全保证。此时就可以另外一种方式，也就是`白名单`来处理
+也就是 LimitType.WHITE_LIST
+```
+
+
+## 异常记录
+1. 暂时不支持Spring-6.x
