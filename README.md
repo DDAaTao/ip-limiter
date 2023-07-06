@@ -8,6 +8,8 @@ author: van , ggfanwentao@gmail.com
 ## 项目简介
 基于JVM缓存的轻量级、注解式IP限流组件，方便项目快速引用，满足多线程场景。
 
+**使用样例**
+https://github.com/DDAaTao/ip-limiter-example
 
 **Ip-Limit 具有以下特性:**
 - 基于注解使用，简单快捷，可添加到Controller类上，也可以添加到具体的API方法上
