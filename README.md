@@ -13,7 +13,7 @@ https://github.com/DDAaTao/ip-limiter-example
 
 **Ip-Limit 具有以下特性:**
 - 基于注解使用，简单快捷，可添加到Controller类上，也可以添加到具体的API方法上
-- 业务入侵小，不用过多配置类 
+- 业务入侵小，不用过多配置类，但可以支持多种场景配置
 - 实现组级别统一限流，即可满足单接口单组场景，又可满足多接口单组
 - 可以通过配置文件批量黑白名单，满足单产品多项目的动态配置需求
 eg. 
@@ -68,7 +68,7 @@ my.white.ip.list=172.16.50.21,172.16.50.22,172.16.50.23
   <dependency>
     <groupId>io.github.DDAaTao</groupId>
     <artifactId>ip-limiter</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
   </dependency>
 ```
 2. 将 @EnableIpLimit 添加到 webApplication 类上,或其他可以被 Spring 扫描到的类上

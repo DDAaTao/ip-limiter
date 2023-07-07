@@ -1,7 +1,7 @@
-package com.siiri.limiter.core.util;
+package com.van.limiter.core.util;
 
 import com.google.common.collect.Sets;
-import com.siiri.limiter.core.constant.IpLimitConstant;
+import com.van.limiter.core.constant.IpLimitConstant;
 import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;

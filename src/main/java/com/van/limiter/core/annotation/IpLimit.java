@@ -1,9 +1,9 @@
-package com.siiri.limiter.core.annotation;
+package com.van.limiter.core.annotation;
 
-import com.siiri.limiter.core.constant.IpLimitConstant;
-import com.siiri.limiter.core.enums.CurrentLimiterType;
-import com.siiri.limiter.core.enums.LimitTimeType;
-import com.siiri.limiter.core.enums.LimitType;
+import com.van.limiter.core.constant.IpLimitConstant;
+import com.van.limiter.core.enums.CurrentLimiterType;
+import com.van.limiter.core.enums.LimitTimeType;
+import com.van.limiter.core.enums.LimitType;
 
 import java.lang.annotation.*;
 

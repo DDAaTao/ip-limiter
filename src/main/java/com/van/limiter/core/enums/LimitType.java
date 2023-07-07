@@ -1,4 +1,4 @@
-package com.siiri.limiter.core.enums;
+package com.van.limiter.core.enums;
 
 /**
  * 限流规则

@@ -1,11 +1,13 @@
-package com.siiri.limiter.core.aspect;
+package com.van.limiter.core.aspect;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.RateLimiter;
-import com.siiri.limiter.core.annotation.IpLimit;
-import com.siiri.limiter.core.constant.IpLimitConstant;
-import com.siiri.limiter.core.exception.IpLimitException;
-import com.siiri.limiter.core.util.IpUtils;
+import com.van.limiter.core.annotation.IpLimit;
+import com.van.limiter.core.constant.IpLimitConstant;
+import com.van.limiter.core.exception.IpLimitException;
+import com.van.limiter.core.util.IpUtils;
+import com.van.limiter.core.enums.CurrentLimiterType;
+import com.van.limiter.core.enums.LimitTimeType;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -39,7 +41,7 @@ public class IpLimitAspect {
     @Autowired
     private Environment environment;
 
-    @Pointcut("@within(com.siiri.limiter.core.annotation.IpLimit) ||@annotation(com.siiri.limiter.core.annotation.IpLimit)")
+    @Pointcut("@within(com.van.limiter.core.annotation.IpLimit) || @annotation(com.van.limiter.core.annotation.IpLimit)")
     private void pointMethod() {
     }
 

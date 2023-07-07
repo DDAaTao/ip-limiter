@@ -1,7 +1,8 @@
-package com.siiri.limiter.core.aspect;
+package com.van.limiter.core.aspect;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.RateLimiter;
+import com.van.limiter.core.annotation.EnableIpLimit;
 import org.springframework.context.annotation.Bean;
 
 import java.time.LocalDateTime;
@@ -33,7 +34,7 @@ public class RateLimitAspectConfig {
     protected static final Map<String, Map<String, Deque<LocalDateTime>>> WINDOW_TIMESTAMP_LIMITER_MAP = Maps.newConcurrentMap();
 
     /**
-     * 用于 {@link com.siiri.limiter.core.annotation.EnableIpLimit} 自动扫描
+     * 用于 {@link EnableIpLimit} 自动扫描
      * @return aspect
      */
     @Bean

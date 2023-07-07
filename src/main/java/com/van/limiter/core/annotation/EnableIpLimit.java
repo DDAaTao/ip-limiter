@@ -1,6 +1,6 @@
-package com.siiri.limiter.core.annotation;
+package com.van.limiter.core.annotation;
 
-import com.siiri.limiter.core.aspect.RateLimitAspectConfig;
+import com.van.limiter.core.aspect.RateLimitAspectConfig;
 import org.springframework.context.annotation.Import;
 
 import java.lang.annotation.ElementType;

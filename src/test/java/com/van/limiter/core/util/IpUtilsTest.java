@@ -1,4 +1,4 @@
-package com.siiri.limiter.core.util;
+package com.van.limiter.core.util;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
