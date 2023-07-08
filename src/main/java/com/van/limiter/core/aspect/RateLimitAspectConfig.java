@@ -3,6 +3,7 @@ package com.van.limiter.core.aspect;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.RateLimiter;
 import com.van.limiter.core.annotation.EnableIpLimit;
+import com.van.limiter.core.util.IpLimitUtils;
 import org.springframework.context.annotation.Bean;
 
 import java.time.LocalDateTime;
@@ -40,5 +41,14 @@ public class RateLimitAspectConfig {
     @Bean
     public IpLimitAspect aspect() {
         return new IpLimitAspect();
+    }
+
+    /**
+     * 用于开放给用户一些内部功能
+     * @return IpLimitUtils
+     */
+    @Bean
+    public IpLimitUtils utils() {
+        return new IpLimitUtils();
     }
 }

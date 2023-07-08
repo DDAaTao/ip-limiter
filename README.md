@@ -8,14 +8,16 @@ author: van , ggfanwentao@gmail.com
 ## 项目简介
 基于JVM缓存的轻量级、注解式IP限流组件，方便项目快速引用，满足多线程场景。
 
-**使用样例**
-https://github.com/DDAaTao/ip-limiter-example
+### 使用样例
+> 包含较为详细的演示使用代码
+
+项目地址： https://github.com/DDAaTao/ip-limiter-example
 
 **Ip-Limit 具有以下特性:**
 - 基于注解使用，简单快捷，可添加到Controller类上，也可以添加到具体的API方法上
 - 业务入侵小，不用过多配置类，但可以支持多种场景配置
 - 实现组级别统一限流，即可满足单接口单组场景，又可满足多接口单组
-- 可以通过配置文件批量黑白名单，满足单产品多项目的动态配置需求
+- 支持动态配置（新增、删除）黑白名单
 eg. 
 ```properties
 # 配置文件中配置,需要注意分隔符为半角的','
@@ -31,7 +33,7 @@ my.white.ip.list=172.16.50.21,172.16.50.22,172.16.50.23
   - 默认根据单位次数/单位时间进行限流
   - 基于黑、白名单进行限流
   - 黑白名单 + 单位次数/单位时间进行限流
-- 黑白名单IP规则实现多种模糊模式配置
+- 黑白名单IP规则实现多种模糊模式配置，支持IPv6
   - 172.\*.\*.1
   - 172.*.1
   - 172.*
@@ -46,20 +48,6 @@ my.white.ip.list=172.16.50.21,172.16.50.22,172.16.50.23
 - DEFAULT_WITH_BLACK_LIST - 在默认限流策略的基础上,直接403黑名单
 - DEFAULT_WITH_WHITE_AND_BLACK_LIST - 在默认限流策略的基础上,直接403黑名单,再让白名单内的IP直接同行
 
-**Ip-Limit 计划实现功能:**
-- 对应组黑白名单只需单次配置即可作用于同组下的其他接口
-  - 目前的黑白名单配置是按第一次请求时缓存到rateLimiterMap中的RateLimiter进行限流的
-- 通过RateLimitAspectConfig添加统一配置组、限流、黑白名单功能
-- 可将IP更换为指定字段（比如账号）限流
-- 通过限流类型完善内部请求防止误伤场景
-- 黑白名单配置可更换为动态数据源 
-- 黑名单可以根据限流规则动态增删 
-- IP缓存统计数据可更换其他存储数据源，避免过多占用JVM缓存
-- 可动态配置请求拒绝决策，方便上层进行捕捉和异常处理
-- 用户自定义限流器
-- 全局限流、全局分IP限流
-
-
 ## 快速开始
 
 1. 引入Ip-Limit依赖（已发布至Maven中央仓库）
@@ -68,7 +56,7 @@ my.white.ip.list=172.16.50.21,172.16.50.22,172.16.50.23
   <dependency>
     <groupId>io.github.DDAaTao</groupId>
     <artifactId>ip-limiter</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
   </dependency>
 ```
 2. 将 @EnableIpLimit 添加到 webApplication 类上,或其他可以被 Spring 扫描到的类上
@@ -93,7 +81,8 @@ public class BaseExceptionHandler {
   @ExceptionHandler(IpLimitException.class)
   @ResponseBody
   public RestApiResult<Object> resolveCommonException(IpLimitException e) {
-    log.error("IpLimitException Intercept. Please try again later.. ");
+    log.error("IpLimitException Intercept. Please try again later.. " + e.getMessage());
+    // 此处可以通过 e.getRequestIp() 和 e.getGroupName() 做一些限流回调业务处理
     return RestApiResult.fail("IpLimitException Intercept. Please try again later.. ");
   }
   
@@ -101,13 +90,48 @@ public class BaseExceptionHandler {
 
 ```
 ### 二、已存在鉴权方案时的接入方案
-```
-SpringCloud 项目或者大部分项目一般都会有默认鉴权机制，比如Spring-Security。
-这个时候如果有需要和外部对接的接口，有两种处理方法，一个是通过类似Oauth2之类的三方协议处理，
-但是流程对接较为麻烦，尤其是有些内外项目，本身已有较好的安全保证。此时就可以另外一种方式，也就是`白名单`来处理
-也就是 LimitType.WHITE_LIST
-```
 
+SpringCloud 项目或者大部分项目一般都会有做自己的鉴权机制，比如Spring-Security。
+这个时候如果有需要和外部对接的接口，有两种处理方法，一个是通过类似Oauth2之类的三方协议处理，
+但是流程对接较为麻烦。
+
+尤其是有些内网项目，本身已有较好的安全保证。此时就可以另外一种方式，也就是 **白名单** 来处理
+也就是 LimitType.WHITE_LIST
+
+或在白名单之上追加限流规则，保障系统的可用性，也就是 LimitType.DEFAULT_WITH_WHITE_LIST
+
+
+### 三、动态配置黑白名单
+> 1.0.3 版本开始提供IpLimitUtils工具类，通过注入获取实例后可以实现动态配置黑白名单，该动态配置数据与注解中的配置取并集
+
+***IpLimitUtils提供方法如下***
+- putWhiteIpGroup - 可通过该方法动态配置新增白名单
+- removeWhiteIpGroup - 可通过该方法动态清空对应 group 的白名单配置
+- deleteWhiteIpGroupArrayStr - 可通过该方法动态去掉对应 group 中的某项 arrayStr 白名单
+- putBlackIpGroup - 可通过该方法动态配置新增黑名单
+- removeBlackIpGroup - 可通过该方法动态清空对应 group 的黑名单配置
+- deleteBlackIpGroupArrayStr - 可通过该方法动态去掉对应 group 中的某项 arrayStr 黑名单
+
+***有了这些方法，就可以通过第三方（比如数据库）存储黑白名单数据，然后动态初始化、修改黑名单配置***
 
 ## 异常记录
 1. 暂时不支持Spring-6.x
+
+
+## 更新日志
+> 加粗表示重要版本更新，删除线表示废弃版本，不建议使用
+- ~~1.0.1~~ 实现滑动窗口限流模式
+- 1.0.2 调整规范，添加样例项目链接
+- ___1.0.3___ 开放用户动态配置黑白名单
+
+
+
+
+
+## Ip-Limit 计划实现功能
+- 用户自定义限流器
+- 全局限流、全局分IP限流
+- 添加限流监控，监控数据回调（目前可以通过@ExceptionHandler(IpLimitException.class)处理异常回调）
+- IP缓存统计数据可更换其他存储数据源，避免过多占用JVM缓存
+- 可将IP更换为指定字段（比如账号）限流
+- 更加灵活的异常处理机制

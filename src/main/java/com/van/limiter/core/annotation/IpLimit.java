@@ -64,7 +64,7 @@ public @interface IpLimit {
      * 白名单,使用方式由 limitType() 确定,比如选择默认LimitType.DEFAULT时该参数配置无用
      * @return 白名单str
      */
-    String[] whiteList() default {"localhost", "127.0.0.1"};
+    String[] whiteList() default {"localhost", "127.0.0.1", "0:0:0:0:0:0:0:1"};
 
     /**
      * 黑名单,使用方式由 limitType() 确定,比如选择默认LimitType.DEFAULT时该参数配置无用

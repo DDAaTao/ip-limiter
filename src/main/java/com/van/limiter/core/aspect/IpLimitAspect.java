@@ -3,11 +3,9 @@ package com.van.limiter.core.aspect;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.RateLimiter;
 import com.van.limiter.core.annotation.IpLimit;
-import com.van.limiter.core.constant.IpLimitConstant;
 import com.van.limiter.core.exception.IpLimitException;
+import com.van.limiter.core.util.IpLimitUtils;
 import com.van.limiter.core.util.IpUtils;
-import com.van.limiter.core.enums.CurrentLimiterType;
-import com.van.limiter.core.enums.LimitTimeType;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -16,7 +14,6 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -39,7 +36,7 @@ public class IpLimitAspect {
     private static final Logger log = LoggerFactory.getLogger(IpLimitAspect.class);
 
     @Autowired
-    private Environment environment;
+    private IpLimitUtils ipLimitUtils;
 
     @Pointcut("@within(com.van.limiter.core.annotation.IpLimit) || @annotation(com.van.limiter.core.annotation.IpLimit)")
     private void pointMethod() {
@@ -70,34 +67,34 @@ public class IpLimitAspect {
                 break;
             case WHITE_LIST:
                 // 如果是白名单内的,则不再进行校验
-                if (Boolean.TRUE.equals(strInIpArray(ipLimitAnnotation.whiteList(), requestHost))) {
+                if (Boolean.TRUE.equals(ipLimitUtils.ipInWhiteIpList(ipLimitAnnotation, requestHost))) {
                     return joinPoint.proceed();
                 }
                 ipLimitError(ipLimitAnnotation, requestHost);
                 break;
             case BLACK_LIST:
                 // 如果存在于黑名单,则抛出异常
-                if (Boolean.TRUE.equals(strInIpArray(ipLimitAnnotation.blackList(), requestHost))) {
+                if (Boolean.TRUE.equals(ipLimitUtils.ipInBlackIpList(ipLimitAnnotation, requestHost))) {
                     ipLimitError(ipLimitAnnotation, requestHost);
                 }
                 return joinPoint.proceed();
             case DEFAULT_WITH_WHITE_LIST:
-                if (Boolean.TRUE.equals(strInIpArray(ipLimitAnnotation.whiteList(), requestHost))) {
+                if (Boolean.TRUE.equals(ipLimitUtils.ipInWhiteIpList(ipLimitAnnotation, requestHost))) {
                     return joinPoint.proceed();
                 }
                 currentLimiterSwitch(ipLimitAnnotation, requestHost, permitsPerSecond);
                 break;
             case DEFAULT_WITH_BLACK_LIST:
-                if (Boolean.TRUE.equals(strInIpArray(ipLimitAnnotation.blackList(), requestHost))) {
+                if (Boolean.TRUE.equals(ipLimitUtils.ipInBlackIpList(ipLimitAnnotation, requestHost))) {
                     ipLimitError(ipLimitAnnotation, requestHost);
                 }
                 currentLimiterSwitch(ipLimitAnnotation, requestHost, permitsPerSecond);
                 break;
             case DEFAULT_WITH_WHITE_AND_BLACK_LIST:
-                if (Boolean.TRUE.equals(strInIpArray(ipLimitAnnotation.blackList(), requestHost))) {
+                if (Boolean.TRUE.equals(ipLimitUtils.ipInBlackIpList(ipLimitAnnotation, requestHost))) {
                     ipLimitError(ipLimitAnnotation, requestHost);
                 }
-                if (Boolean.TRUE.equals(strInIpArray(ipLimitAnnotation.whiteList(), requestHost))) {
+                if (Boolean.TRUE.equals(ipLimitUtils.ipInWhiteIpList(ipLimitAnnotation, requestHost))) {
                     return joinPoint.proceed();
                 }
                 currentLimiterSwitch(ipLimitAnnotation, requestHost, permitsPerSecond);
@@ -113,8 +110,8 @@ public class IpLimitAspect {
      * @param requestHost 请求方IP
      */
     private void ipLimitError(IpLimit ipLimitAnnotation, String requestHost) {
-        log.warn("Ip limiter warning ! IP: {}, GroupName: {}", requestHost, ipLimitAnnotation.groupName());
-        throw new IpLimitException("Limiter warning !");
+        throw new IpLimitException(String.format("Ip limiter warning ! IP: %s, GroupName: %s", requestHost, ipLimitAnnotation.groupName()),
+                requestHost, ipLimitAnnotation.groupName());
     }
 
     /**
@@ -222,23 +219,4 @@ public class IpLimitAspect {
         }
     }
 
-    /**
-     * 判断对应字符串是否存在于数组内
-     * @param array array
-     * @param str 字符串
-     * @return boolean
-     */
-    private boolean strInIpArray(String[] array, String str) {
-        for (String arrayStr : array) {
-            // 通过environment实现可通过properties配置对应的映射arrayStr
-            arrayStr = environment.resolvePlaceholders(arrayStr);
-            String[] split = arrayStr.split(IpLimitConstant.IP_PROPERTIES_SPLIT);
-            for (String s : split) {
-                if (IpUtils.ipFuzzyMatch(s.trim(), str)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
 }

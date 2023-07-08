@@ -101,7 +101,7 @@ public class IpUtils {
      *
      * @return String
      */
-    public String getLocalHostIP() throws SocketException {
+    public static String getLocalHostIP() throws SocketException {
         Enumeration<NetworkInterface> allNetInterfaces = NetworkInterface.getNetworkInterfaces();
         String localHostAddress = "";
         while (allNetInterfaces.hasMoreElements()) {
