@@ -37,7 +37,7 @@ public @interface IpLimit {
      * LimitType.BLACK_LIST 只考虑黑名单策略,非黑名单请求不做限流措施
      * LimitType.DEFAULT_WITH_WHITE_LIST 在默认限流策略的基础上,白名单内的IP不做限流
      * LimitType.DEFAULT_WITH_BLACK_LIST 在默认限流策略的基础上,直接403黑名单
-     * LimitType.DEFAULT_WITH_WHITE_AND_BLACK_LIST 在默认限流策略的基础上,直接403黑名单,再让白名单内的IP直接同行
+     * LimitType.DEFAULT_WITH_WHITE_AND_BLACK_LIST 在默认限流策略的基础上,直接403黑名单,再让白名单内的IP直接通行
      * @return 限流策略类型
      */
     LimitType limitType() default LimitType.DEFAULT;

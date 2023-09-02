@@ -1,6 +1,7 @@
 package com.van.limiter.core.exception;
 
 
+import com.van.limiter.core.annotation.IpLimit;
 
 /**
  * 专用于Ip限流异常,可用于自定义捕获
@@ -18,11 +19,16 @@ public class IpLimitException extends RuntimeException {
      * 异常接口的GroupName
      */
     private final String groupName;
+    /**
+     * 异常的IpLimit注释信息
+     */
+    private final IpLimit ipLimitAnnotation;
 
-    public IpLimitException(String message, String requestIp, String groupName) {
+    public IpLimitException(String message, String requestIp, String groupName, IpLimit ipLimitAnnotation) {
         super(message);
         this.requestIp = requestIp;
         this.groupName = groupName;
+        this.ipLimitAnnotation = ipLimitAnnotation;
     }
 
     public String getRequestIp() {
@@ -32,4 +38,6 @@ public class IpLimitException extends RuntimeException {
     public String getGroupName() {
         return groupName;
     }
+
+    public IpLimit getIpLimitAnnotation() {return ipLimitAnnotation;}
 }

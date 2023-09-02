@@ -11,8 +11,6 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -32,8 +30,6 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 @Aspect
 @Component
 public class IpLimitAspect {
-
-    private static final Logger log = LoggerFactory.getLogger(IpLimitAspect.class);
 
     @Autowired
     private IpLimitUtils ipLimitUtils;
@@ -59,7 +55,6 @@ public class IpLimitAspect {
 
         HttpServletRequest request = attributes.getRequest();
         String requestHost = IpUtils.getIpAddress(request);
-        log.debug("Limiter found request IP: {}", requestHost);
         double permitsPerSecond = computePermitsPerSecond(ipLimitAnnotation);
         switch (ipLimitAnnotation.limitType()) {
             case DEFAULT:
@@ -111,7 +106,7 @@ public class IpLimitAspect {
      */
     private void ipLimitError(IpLimit ipLimitAnnotation, String requestHost) {
         throw new IpLimitException(String.format("Ip limiter warning ! IP: %s, GroupName: %s", requestHost, ipLimitAnnotation.groupName()),
-                requestHost, ipLimitAnnotation.groupName());
+                requestHost, ipLimitAnnotation.groupName(), ipLimitAnnotation);
     }
 
     /**

@@ -100,6 +100,7 @@ public class IpUtils {
      * 获取本机的局域网ip地址，兼容Linux
      *
      * @return String
+     * @throws SocketException SocketException
      */
     public static String getLocalHostIP() throws SocketException {
         Enumeration<NetworkInterface> allNetInterfaces = NetworkInterface.getNetworkInterfaces();
