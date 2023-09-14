@@ -1,75 +1,79 @@
-~~~ 
+~~~
 author: van , ggfanwentao@gmail.com
 ~~~
+中文 | [点击跳转](README_zh.md)
+
 ---
 
-# Ip-Limit: 轻量级注解式IP限流组件
+# Ip-Limiter: Lightweight Annotation-based IP Rate Limiting Component
 
-## 项目简介
-基于JVM缓存的轻量级、注解式IP限流组件，方便项目快速引用，满足多线程场景。
+## Project Introduction
+Ip-Limiter is a lightweight, annotation-based IP rate limiting component based on JVM cache, designed for easy integration into projects and to meet multi-threading scenarios.
 
-### 使用样例
-> 包含较为详细的演示使用代码
+### Usage Example
+> Contains detailed demonstration code
 
-项目地址： https://github.com/DDAaTao/ip-limiter-example
+Demo Project Repository: https://github.com/DDAaTao/ip-limiter-example \
+Demo China Project Repository: https://gitee.com/fanwentaomayun/ip-limiter-example
 
-**Ip-Limit 具有以下特性:**
-- 基于注解使用，简单快捷，可添加到Controller类上，也可以添加到具体的API方法上
-- 业务入侵小，不用过多配置类，但可以支持多种场景配置
-- 实现组级别统一限流，即可满足单接口单组场景，又可满足多接口单组
-- 支持配置文件配置、外部动态配置（新增、删除）黑白名单
+**Ip-Limit features include:**
+- Annotation-based usage, simple and convenient, can be added to Controller classes or specific API methods.
+- Minimal intrusion into business logic; no need for extensive configuration, yet supports various scenarios.
+- Provides group-level uniform rate limiting, serving both single interface and multiple interfaces within a group.
+- Supports configuration through property files and dynamic external configuration (addition and deletion) of blacklists and whitelists.
 
 ```properties
-# 配置文件中配置,需要注意分隔符为半角的','
+# Configuration in a properties file, note that ',' is used as a delimiter
 my.white.ip.list=172.16.50.21,172.16.50.22,172.16.50.23
 ```
+
 ```
-// 代码中使用时
+// Usage in code
 @IpLimit(limitType = LimitType.WHITE_LIST, whiteList = "${my.white.ip.list}")
-// 或
+// or
 @IpLimit(limitType = LimitType.WHITE_LIST, whiteList = {"${my.white.ip.list}","172.16.50.35"})
 ```
 
-- 黑白名单IP规则实现多种模糊模式配置，支持IPv6
+- Black and white list IP rules support multiple fuzzy pattern configurations and IPv6:
   - 172.\*.\*.1
   - 172.*.1
   - 172.*
   - *.21
   - \*
 
-**核心限流模式 - LimitType类**
-- DEFAULT - 走默认限流策略,不考虑黑白名单参数
-- WHITE_LIST - 只考虑白名单策略,非白名单的请求全部回绝
-- BLACK_LIST - 只考虑黑名单策略,非黑名单请求不做限流措施
-- DEFAULT_WITH_WHITE_LIST - 在默认限流策略的基础上,白名单内的IP不做限流
-- DEFAULT_WITH_BLACK_LIST - 在默认限流策略的基础上,直接403黑名单
-- DEFAULT_WITH_WHITE_AND_BLACK_LIST - 在默认限流策略的基础上,直接403黑名单,再让白名单内的IP直接同行
+**Core rate limiting modes - LimitType class:**
+- DEFAULT - Follows the default rate limiting strategy, without considering black and white list parameters.
+- WHITE_LIST - Considers only the whitelist strategy; requests not in the whitelist are all rejected.
+- BLACK_LIST - Considers only the blacklist strategy; requests not in the blacklist are not rate-limited.
+- DEFAULT_WITH_WHITE_LIST - Builds upon the default rate limiting strategy, where IPs in the whitelist are not rate-limited.
+- DEFAULT_WITH_BLACK_LIST - Builds upon the default rate limiting strategy, directly returning a 403 error for IPs in the blacklist.
+- DEFAULT_WITH_WHITE_AND_BLACK_LIST - Builds upon the default rate limiting strategy, directly returning a 403 error for IPs in the blacklist and allowing IPs in the whitelist to proceed.
 
-## 快速开始
+## Getting Started
 
-1. 引入Ip-Limit依赖（已发布至Maven中央仓库）
+1. Include the Ip-Limit dependency (available on Maven Central).
 ```xml
-  <!-- 建议使用最新版本{ip-limiter.version} -->
+  <!-- Recommend using the latest version {ip-limiter.version} -->
   <dependency>
     <groupId>io.github.DDAaTao</groupId>
     <artifactId>ip-limiter</artifactId>
     <version>1.0.3</version>
   </dependency>
 ```
-2. 将 @EnableIpLimit 添加到 webApplication 类上,或其他可以被 Spring 扫描到的类上
-3. 将 @IpLimit 注解添加到想要做IP限流的方法（接口）上，根据需求动态调整参数
+2. Add @EnableIpLimit to the web application class or any class that can be scanned by Spring.
+3. Add the @IpLimit annotation to the methods (endpoints) where you want to apply IP rate limiting, and adjust the parameters according to your needs.
 
-> 如果项目中没有引入guava、spring-context包,则需要手动引入,否则会报java.lang.NoSuchMethodError异常
-> 
-> 从1.0.1开始默认引入,如果项目中已有相关依赖,可以考虑通过exclusions去除掉
+> If your project does not include guava and spring-context packages, you need to manually include them; otherwise, you may encounter a java.lang.NoSuchMethodError exception.
+>
+> Starting from version 1.0.1, these dependencies are included by default. If your project already has these dependencies, consider excluding them.
 
-## 最佳实践
-### 一、自定义限流异常处理机制
+## Best Practices
+### 1.Custom Rate Limit Exception Handling Mechanism
 ```Java
 /**
- * 默认情况下,当请求超出限流限制时,会打印日志并抛出 IpLimitException 异常
- * 用户可以通过统一异常拦截器捕获并自定义业务处理
- * 后续考虑增加回调或钩子方法
+ * By default, when requests exceed rate limits, it logs an error and throws an IpLimitException.
+ * Users can capture and customize the exception handling through a global exception handler.
+ * Callbacks or hook methods may be added in the future.
  * */
 @Slf4j
 @ControllerAdvice
@@ -79,56 +83,53 @@ public class BaseExceptionHandler {
   @ResponseBody
   public RestApiResult<Object> resolveCommonException(IpLimitException e) {
     log.error("IpLimitException Intercept. Please try again later.. " + e.getMessage());
-    // 此处可以通过 e.getRequestIp() 和 e.getGroupName() 做一些限流回调业务处理
+    // Here, you can perform rate limit callback processing using e.getRequestIp() and e.getGroupName()
     return RestApiResult.fail("IpLimitException Intercept. Please try again later.. ");
   }
   
 }
-
 ```
-### 二、已存在鉴权方案时的接入方案
 
-SpringCloud 项目或者大部分项目一般都会有做自己的鉴权机制，比如Spring-Security。
-这个时候如果有需要和外部对接的接口，有两种处理方法，一个是通过类似Oauth2之类的三方协议处理，
-但是流程对接较为麻烦。
+### 2. Integration with Existing Authentication Solutions
 
-尤其是有些内网项目，本身已有较好的安全保证。此时就可以另外一种方式，也就是 **白名单** 来处理
-也就是 LimitType.WHITE_LIST
+In SpringCloud projects or most projects, there is usually an existing authentication mechanism, such as Spring Security. In such cases, when there is a need to integrate with external interfaces, there are two approaches. One is to handle it through third-party protocols like OAuth2, but this can be a complex integration process.
 
-或在白名单之上追加限流规则，保障系统的可用性，也就是 LimitType.DEFAULT_WITH_WHITE_LIST
+Especially in the case of internal network projects that already have robust security measures, another approach can be used, which is the whitelist method, denoted as LimitType.WHITE_LIST.
 
+Alternatively, you can add rate limiting rules on top of the whitelist to ensure system availability, using LimitType.DEFAULT_WITH_WHITE_LIST.
 
-### 三、动态配置黑白名单
-> 1.0.3 版本开始提供IpLimitUtils工具类，通过注入获取实例后可以实现动态配置黑白名单，该动态配置数据与注解中的配置取并集
+### 3. Dynamic Configuration of Black and White Lists
+> Starting from version 1.0.3, IpLimitUtils utility class is provided, which allows dynamic configuration of black and white lists. This dynamic configuration data is combined with the configuration specified in annotations.
 
-***IpLimitUtils提供方法如下***
-- putWhiteIpGroup - 可通过该方法动态配置新增白名单
-- removeWhiteIpGroup - 可通过该方法动态清空对应 group 的白名单配置
-- deleteWhiteIpGroupArrayStr - 可通过该方法动态去掉对应 group 中的某项 arrayStr 白名单
-- putBlackIpGroup - 可通过该方法动态配置新增黑名单
-- removeBlackIpGroup - 可通过该方法动态清空对应 group 的黑名单配置
-- deleteBlackIpGroupArrayStr - 可通过该方法动态去掉对应 group 中的某项 arrayStr 黑名单
+***IpLimitUtils offers the following methods***
+- `putWhiteIpGroup` - Allows dynamic addition of new entries to the whitelist.
+- `removeWhiteIpGroup` - Dynamically clears the whitelist for a specific group.
+- `deleteWhiteIpGroupArrayStr` - Allows dynamic removal of a specific arrayStr entry from the whitelist for a group.
+- `putBlackIpGroup` - Allows dynamic addition of new entries to the blacklist.
+- `removeBlackIpGroup` - Dynamically clears the blacklist for a specific group.
+- `deleteBlackIpGroupArrayStr` - Allows dynamic removal of a specific arrayStr entry from the blacklist for a group.
 
-***有了这些方法，就可以通过第三方（比如数据库）存储黑白名单数据，然后动态初始化、修改黑名单配置***
+***With these methods, you can store black and white list data in third-party sources like databases and then dynamically initialize or modify blacklist configurations.***
 
-## 异常记录
-1. 暂时不支持Spring-6.x
+## Known Issues
+1. Currently, it does not support Spring 6.x.
 
+## Changelog
+> Bold indicates important version updates; strikethrough indicates deprecated versions, not recommended for use.
 
-## 更新日志
-> 加粗表示重要版本更新，删除线表示废弃版本，不建议使用
-- ~~1.0.1~~ 实现滑动窗口限流模式
-- 1.0.2 调整规范，添加样例项目链接
-- ___1.0.3___ 开放用户动态配置黑白名单
+- ~~1.0.1~~ Implemented sliding window rate limiting mode.
+- 1.0.2 Adjusted specifications and added a link to example projects.
+- ___1.0.3___ Introduced dynamic configuration of black and white lists for user customization.
 
 
+## Ip-Limit Planned Features
+- User-customized rate limiters.
+- Global rate limiting and per-IP rate limiting.
+- Adding rate limiting monitoring and callback for monitoring data (currently handled via @ExceptionHandler(IpLimitException.class)).
+- IP cache statistics data can be stored in other data sources to avoid excessive JVM cache usage.
+- Support for using a specified field (e.g., account) for rate limiting.
+- More flexible exception handling mechanisms.
+- Support Spring-Gateway
 
 
 
-## Ip-Limit 计划实现功能
-- 用户自定义限流器
-- 全局限流、全局分IP限流
-- 添加限流监控，监控数据回调（目前可以通过@ExceptionHandler(IpLimitException.class)处理异常回调）
-- IP缓存统计数据可更换其他存储数据源，避免过多占用JVM缓存
-- 可将IP更换为指定字段（比如账号）限流
-- 更加灵活的异常处理机制
